@@ -2,12 +2,12 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./libraries/ERC721.sol";
+import "./libraries/ERC721Enumerable.sol";
 import "./interfaces/IERC1271.sol";
 import "./interfaces/IMaidverseAvatars.sol";
 import "./libraries/Signature.sol";
 
-contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), IERC2981, IMaidverseAvatars {
+contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ERC721Enumerable, IERC2981, IMaidverseAvatars {
     bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
     uint256 private immutable _CACHED_CHAIN_ID;
 
@@ -24,7 +24,6 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), IE
     mapping(uint256 => uint256) public nonces;
     mapping(address => uint256) public noncesForAll;
 
-    uint256 public totalSupply;
     mapping(address => bool) public isMinter;
 
     address public feeReceiver;
@@ -145,12 +144,17 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), IE
         address from,
         address to,
         uint256 tokenId
-    ) internal override {
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, IERC165) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable, IERC165)
+        returns (bool)
+    {
+        return interfaceId == 0x2a55205a || super.supportsInterface(interfaceId);
     }
 
     function setMinter(address target, bool _isMinter) external onlyOwner {
@@ -176,17 +180,15 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), IE
     
     function mint(address to) external returns (uint256 id) {
         require(isMinter[msg.sender], "MaidverseAvatars: Forbidden");
-        id = totalSupply;
+        id = totalSupply();
         _mint(to, id);
-        totalSupply += 1;
     }
 
     function mintBatch(uint256 limit) external {
         require(isMinter[msg.sender], "MaidverseAvatars: Forbidden");
-        uint256 id = totalSupply;
+        uint256 id = totalSupply();
         for (uint256 i = 0; i < limit - id; i++) {
             _mint(msg.sender, id + i);
         }
-        totalSupply = limit;
     }
 }
