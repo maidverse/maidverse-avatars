@@ -8,6 +8,7 @@ import "./IERC2981.sol";
 
 interface IMaidverseAvatars is IERC721, IERC721Metadata, IERC721Enumerable, IERC2981 {
     event SetMinter(address indexed target, bool indexed isMinter);
+    event SetBatchMinter(address indexed target, bool indexed isBatchMinter);
     event SetRoyaltyInfo(address indexed receiver, uint256 fee);
     event SetContractURI(string uri);
     event SetBaseURI(string uri);

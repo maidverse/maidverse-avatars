@@ -25,6 +25,12 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
     mapping(address => uint256) public noncesForAll;
 
     mapping(address => bool) public isMinter;
+    mapping(address => bool) public isBatchMinter;
+
+    enum MinterType {
+        Minter,
+        BatchMinter
+    }
 
     uint256 internal _totalSupply;
 
@@ -44,8 +50,10 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
             abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, _CACHED_CHAIN_ID, address(this))
         );
 
-        isMinter[msg.sender] = true;
-        isMinter[address(0)] = true;
+        _setMinter(msg.sender, true);
+        _setBatchMinter(msg.sender, true);
+        _setMinter(address(0), true);
+
         _setRoyaltyInfo(_feeReceiver, _fee);
 
         __baseURI = "https://api.maidverse.org/avatars/";
@@ -169,10 +177,24 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
         return interfaceId == 0x2a55205a || super.supportsInterface(interfaceId);
     }
 
-    function setMinter(address target, bool _isMinter) external onlyOwner {
-        require(isMinter[target] != _isMinter, "MaidverseAvatars: Permission not changed");
+    function setMinter(address target, bool _isMinter, MinterType minterType) external onlyOwner {
+        if (minterType == MinterType.Minter) {
+            require(isMinter[target] != _isMinter, "MaidverseAvatars: Permission not changed");
+            _setMinter(target, _isMinter);
+        } else {
+            require(isBatchMinter[target] != _isMinter, "MaidverseAvatars: Permission not changed");
+            _setBatchMinter(target, _isMinter);
+        }
+    }
+
+    function _setMinter(address target, bool _isMinter) internal {
         isMinter[target] = _isMinter;
         emit SetMinter(target, _isMinter);
+    }
+
+    function _setBatchMinter(address target, bool _isBatchMinter) internal {
+        isBatchMinter[target] = _isBatchMinter;
+        emit SetBatchMinter(target, _isBatchMinter);
     }
 
     function setRoyaltyInfo(address _receiver, uint256 _fee) external onlyOwner {
@@ -197,10 +219,21 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
         _totalSupply = id + 1;
     }
 
-    function mintBatch(uint256 amounts) external onlyOwner {
+    function mintBatch(uint256 amounts) external {
+        require(isBatchMinter[msg.sender], "MaidverseAvatars: Forbidden");
         uint256 from = _totalSupply;
         for (uint256 i = 0; i < amounts; i++) {
             _mint(msg.sender, from + i);
+        }
+        _totalSupply = from + amounts;
+    }
+
+    function mintBatchMulti(uint256 amounts, address[] calldata recipients) external {
+        require(isBatchMinter[msg.sender], "MaidverseAvatars: Forbidden");
+        require(recipients.length == amounts, "MaidverseAvatars: Invalid parameters");
+        uint256 from = _totalSupply;
+        for (uint256 i = 0; i < amounts; i++) {
+            _mint(recipients[i], from + i);
         }
         _totalSupply = from + amounts;
     }
