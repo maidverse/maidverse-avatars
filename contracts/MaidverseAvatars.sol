@@ -7,7 +7,7 @@ import "./interfaces/IERC1271.sol";
 import "./interfaces/IMaidverseAvatars.sol";
 import "./libraries/Signature.sol";
 
-contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ERC721Enumerable, IERC2981, IMaidverseAvatars {
+contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "MA"), ERC721Enumerable, IERC2981, IMaidverseAvatars {
     bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
     uint256 private immutable _CACHED_CHAIN_ID;
 
