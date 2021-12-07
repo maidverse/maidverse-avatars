@@ -26,6 +26,8 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
 
     mapping(address => bool) public isMinter;
 
+    uint256 internal _totalSupply;
+
     address public feeReceiver;
     uint256 public fee; //out of 10000
 
@@ -43,10 +45,20 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
         );
 
         isMinter[msg.sender] = true;
+        isMinter[address(0)] = true;
         _setRoyaltyInfo(_feeReceiver, _fee);
 
         __baseURI = "https://api.maidverse.org/avatars/";
         contractURI = "https://api.maidverse.org/avatars";
+    }
+
+    function totalSupply() public view override(ERC721Enumerable, IERC721Enumerable) returns (uint256) {
+        return _totalSupply;
+    }
+
+    function tokenByIndex(uint256 index) public view override(ERC721Enumerable, IERC721Enumerable) returns (uint256) {
+        require(index < _totalSupply, "MaidverseAvatars: Invalid index");
+        return index;
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -179,16 +191,17 @@ contract MaidverseAvatars is Ownable, ERC721("Maidverse Avatars", "AVATARS"), ER
     }
     
     function mint(address to) external returns (uint256 id) {
-        require(isMinter[msg.sender], "MaidverseAvatars: Forbidden");
-        id = totalSupply();
+        require(isMinter[address(0)] || isMinter[msg.sender], "MaidverseAvatars: Forbidden");
+        id = _totalSupply;
         _mint(to, id);
+        _totalSupply = id + 1;
     }
 
-    function mintBatch(uint256 limit) external {
-        require(isMinter[msg.sender], "MaidverseAvatars: Forbidden");
-        uint256 id = totalSupply();
-        for (uint256 i = 0; i < limit - id; i++) {
-            _mint(msg.sender, id + i);
+    function mintBatch(uint256 amounts) external onlyOwner {
+        uint256 from = _totalSupply;
+        for (uint256 i = 0; i < amounts; i++) {
+            _mint(msg.sender, from + i);
         }
+        _totalSupply = from + amounts;
     }
 }
